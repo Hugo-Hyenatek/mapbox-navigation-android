@@ -608,6 +608,7 @@ internal object MapboxNavigationTelemetry : MapboxNavigationTelemetryInterface {
         // mapboxNavigation.registerFasterRouteObserver(fasterRouteObserver)
         mapboxNavigation.registerLocationObserver(callbackDispatcher)
         mapboxNavigation.registerRoutesObserver(callbackDispatcher)
+        mapboxNavigation.registerOffRouteObserver(callbackDispatcher)
     }
 
     override fun unregisterListeners(mapboxNavigation: MapboxNavigation) {

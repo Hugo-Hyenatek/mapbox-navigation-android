@@ -24,6 +24,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.launch
 
+private const val DISPATCHER_TAG = "TELEMETRY_TEST"
 typealias RouteProgressReference = (RouteProgress) -> Unit
 internal class TelemetryLocationAndProgressDispatcher(scope: CoroutineScope) :
     RouteProgressObserver, LocationObserver, RoutesObserver, OffRouteObserver {
@@ -54,7 +55,8 @@ internal class TelemetryLocationAndProgressDispatcher(scope: CoroutineScope) :
     private val firstLocation = CompletableDeferred<Location>()
     private var firstLocationValue: Location? = null
     private var priorState = RouteProgressState.ROUTE_INVALID
-    private var routeProgressPredicate = AtomicReference<RouteProgressReference>()
+    private val routeProgressPredicate = AtomicReference<RouteProgressReference>()
+    private val newRouteAvailable = AtomicReference<DirectionsRoute>(null)
 
     init {
         routeProgressPredicate.set { routeProgress -> beforeArrival(routeProgress) }
@@ -203,6 +205,8 @@ internal class TelemetryLocationAndProgressDispatcher(scope: CoroutineScope) :
         routeProgressPredicate.set { routeProgress -> beforeArrival(routeProgress) }
     }
 
+    fun isPossibleDepartureEvent(): DirectionsRoute? = newRouteAvailable.get()
+
     fun getOffRouteEventChannel(): ReceiveChannel<Boolean> = channelOffRouteEvent
     /**
      * This method is called for any state change, excluding RouteProgressState.ROUTE_ARRIVED.
@@ -308,9 +312,10 @@ internal class TelemetryLocationAndProgressDispatcher(scope: CoroutineScope) :
 
         when (routes.isEmpty()) {
             true -> {
-                // Do nothing.
+                Log.d(DISPATCHER_TAG, "onRoutesChanged received an empty route list")
             }
             false -> {
+                Log.d(DISPATCHER_TAG, "onRoutesChanged received a valid route list")
                 val date = Date()
                 channelNewRouteAvailable.offer(RouteAvailable(routes[0], date))
                 originalRouteDelegate(routes)
@@ -320,6 +325,7 @@ internal class TelemetryLocationAndProgressDispatcher(scope: CoroutineScope) :
     }
 
     override fun onOffRouteStateChanged(offRoute: Boolean) {
+        Log.d(DISPATCHER_TAG, "onOffRouteStateChanged $offRoute")
         channelOffRouteEvent.offer(offRoute)
     }
 }
